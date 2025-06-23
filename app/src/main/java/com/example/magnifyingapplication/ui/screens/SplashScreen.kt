@@ -19,7 +19,7 @@ import com.example.magnifyingapplication.ui.theme.PrimaryColor
 import com.example.magnifyingapplication.ui.theme.DarkBackground
 import com.example.magnifyingapplication.ui.theme.LightBackground
 import com.example.magnifyingapplication.ui.theme.headingTextStyle
-import com.example.magnifyingapplication.viewmodel.SplashViewModel
+import com.example.magnifyingapplication.ui.viewmodel.SplashViewModel
 
 @Composable
 fun SplashScreen(

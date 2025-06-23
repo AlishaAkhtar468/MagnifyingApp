@@ -1,6 +1,9 @@
 package com.example.magnifyingapplication.ui.screens
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -16,7 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.magnifyingapplication.viewmodel.PermissionsViewModel
 import com.example.magnifyingapplication.R
+import com.example.magnifyingapplication.data.PreferencesManager
 import com.google.accompanist.permissions.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -24,17 +30,65 @@ fun PermissionScreen(
     viewModel: PermissionsViewModel = viewModel(),
     onPermissionGranted: () -> Unit
 ) {
-    val cameraPermissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
+    val context = LocalContext.current
+    val preferencesManager = remember { PreferencesManager(context) }
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val isGranted by viewModel.cameraPermissionGranted.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(cameraPermissionState.status) {
-        val granted = cameraPermissionState.status.isGranted
-        viewModel.setCameraPermission(granted)
-        if (granted) {
-            onPermissionGranted()
+    var permissionRequested by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
+
+    // 🔁 Handle permission result
+    LaunchedEffect(cameraPermissionState.status, permissionRequested) {
+        if (permissionRequested) {
+            permissionRequested = false
+
+            when (cameraPermissionState.status) {
+                is PermissionStatus.Granted -> {
+                    viewModel.setCameraPermission(true)
+                    coroutineScope.launch {
+                        preferencesManager.setCameraPermissionGranted(true)
+                    }
+                    onPermissionGranted()
+                }
+
+                is PermissionStatus.Denied -> {
+                    viewModel.setCameraPermission(false)
+                    showPermissionDeniedDialog = true
+                }
+            }
         }
     }
 
+    // ❗ Show settings dialog on denial
+    if (showPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDeniedDialog = false },
+            title = { Text("Permission Required") },
+            text = { Text("Camera access is required to capture photos. Please allow it in settings.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionDeniedDialog = false
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPermissionDeniedDialog = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // 📱 UI
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,8 +109,7 @@ fun PermissionScreen(
             text = "This application needs access to the\nfollowing permissions",
             fontSize = 14.sp,
             color = Color.Gray,
-            lineHeight = 18.sp,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            lineHeight = 18.sp
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -91,9 +144,8 @@ fun PermissionScreen(
                 Switch(
                     checked = isGranted,
                     onCheckedChange = {
-                        if (!cameraPermissionState.status.isGranted) {
-                            cameraPermissionState.launchPermissionRequest()
-                        }
+                        permissionRequested = true
+                        cameraPermissionState.launchPermissionRequest()
                     }
                 )
             }

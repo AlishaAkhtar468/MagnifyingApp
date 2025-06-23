@@ -1,4 +1,4 @@
-package com.example.magnifyingapplication.viewmodel
+package com.example.magnifyingapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

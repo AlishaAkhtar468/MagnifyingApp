@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.magnifyingapplication.ui.screens.*
-import com.example.magnifyingapplication.viewmodel.SplashViewModel
+import com.example.magnifyingapplication.ui.viewmodel.SplashViewModel
 import com.example.magnifyingapplication.ui.theme.MagnifyingApplicationTheme
 import com.example.magnifyingapplication.ui.viewmodel.OnboardingViewModel
 import com.example.magnifyingapplication.viewmodel.PermissionsViewModel
@@ -26,7 +26,10 @@ class MainActivity : ComponentActivity() {
 
             val context = LocalContext.current
             val preferencesManager = remember { PreferencesManager(context) }
+
             val onboardingCompleted by preferencesManager.onboardingCompleted.collectAsState(initial = false)
+            val cameraPermissionGranted by preferencesManager.cameraPermissionGranted.collectAsState(initial = false)
+
             var currentScreen by remember { mutableStateOf("splash") }
             val coroutineScope = rememberCoroutineScope()
 
@@ -34,7 +37,11 @@ class MainActivity : ComponentActivity() {
                 when (currentScreen) {
                     "splash" -> SplashScreen(
                         onGetStarted = {
-                            currentScreen = if (onboardingCompleted) "camera" else "onboarding"
+                            currentScreen = when {
+                                !onboardingCompleted -> "onboarding"
+                                !cameraPermissionGranted -> "permission"
+                                else -> "camera"
+                            }
                         },
                         viewModel = splashViewModel
                     )
@@ -58,6 +65,9 @@ class MainActivity : ComponentActivity() {
                     "permission" -> PermissionScreen(
                         viewModel = permissionsViewModel,
                         onPermissionGranted = {
+                            coroutineScope.launch {
+                                preferencesManager.setCameraPermissionGranted(true)
+                            }
                             currentScreen = "camera"
                         }
                     )
