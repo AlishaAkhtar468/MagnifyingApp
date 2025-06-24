@@ -17,8 +17,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.magnifyingapplication.viewmodel.PermissionsViewModel
 import com.example.magnifyingapplication.R
 import com.example.magnifyingapplication.data.PreferencesManager
 import com.google.accompanist.permissions.*
@@ -27,26 +25,23 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionScreen(
-    viewModel: PermissionsViewModel = viewModel(),
     onPermissionGranted: () -> Unit
 ) {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    val isGranted by viewModel.cameraPermissionGranted.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    var permissionRequested by remember { mutableStateOf(false) }
+    var isGranted by remember { mutableStateOf(false) }
     var showPermissionDeniedDialog by remember { mutableStateOf(false) }
+    var permissionRequested by remember { mutableStateOf(false) }
 
-    // 🔁 Handle permission result
-    LaunchedEffect(cameraPermissionState.status, permissionRequested) {
+    // ✅ Handle permission result ONLY after user triggers it
+    LaunchedEffect(cameraPermissionState.status) {
         if (permissionRequested) {
-            permissionRequested = false
-
             when (cameraPermissionState.status) {
                 is PermissionStatus.Granted -> {
-                    viewModel.setCameraPermission(true)
+                    isGranted = true
                     coroutineScope.launch {
                         preferencesManager.setCameraPermissionGranted(true)
                     }
@@ -54,27 +49,32 @@ fun PermissionScreen(
                 }
 
                 is PermissionStatus.Denied -> {
-                    viewModel.setCameraPermission(false)
+                    isGranted = false
                     showPermissionDeniedDialog = true
                 }
             }
+            permissionRequested = false
         }
     }
 
-    // ❗ Show settings dialog on denial
+    // ❗ Show dialog only on denied after user tries
     if (showPermissionDeniedDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDeniedDialog = false },
-            title = { Text("Permission Required") },
-            text = { Text("Camera access is required to capture photos. Please allow it in settings.") },
+            title = { Text("Permission Needed") },
+            text = {
+                Text("Camera access is required to continue. Please allow the permission in settings.")
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    showPermissionDeniedDialog = false
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", context.packageName, null)
+                TextButton(
+                    onClick = {
+                        showPermissionDeniedDialog = false
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        context.startActivity(intent)
                     }
-                    context.startActivity(intent)
-                }) {
+                ) {
                     Text("Open Settings")
                 }
             },

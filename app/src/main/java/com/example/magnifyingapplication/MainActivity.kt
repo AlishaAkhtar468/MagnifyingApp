@@ -4,15 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.magnifyingapplication.data.PreferencesManager
 import com.example.magnifyingapplication.ui.screens.*
-import com.example.magnifyingapplication.ui.viewmodel.SplashViewModel
 import com.example.magnifyingapplication.ui.theme.MagnifyingApplicationTheme
 import com.example.magnifyingapplication.ui.viewmodel.OnboardingViewModel
-import com.example.magnifyingapplication.viewmodel.PermissionsViewModel
-import com.example.magnifyingapplication.data.PreferencesManager
+import com.example.magnifyingapplication.ui.viewmodel.SplashViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +20,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val splashViewModel: SplashViewModel = viewModel()
             val onboardingViewModel: OnboardingViewModel = viewModel()
-            val permissionsViewModel: PermissionsViewModel = viewModel()
             val isDark by splashViewModel.isDarkTheme.collectAsState()
 
             val context = LocalContext.current
@@ -63,7 +61,6 @@ class MainActivity : ComponentActivity() {
                     )
 
                     "permission" -> PermissionScreen(
-                        viewModel = permissionsViewModel,
                         onPermissionGranted = {
                             coroutineScope.launch {
                                 preferencesManager.setCameraPermissionGranted(true)
