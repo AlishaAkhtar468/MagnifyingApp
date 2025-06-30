@@ -2,6 +2,7 @@ package com.example.magnifyingapplication.ui.screens
 
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
@@ -25,7 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -42,7 +42,13 @@ import androidx.lifecycle.LifecycleOwner
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.painterResource
+import com.example.magnifyingapplication.EnhancerActivity
+import com.example.magnifyingapplication.R
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.IconButton
+import com.example.magnifyingapplication.SettingActivity
 
 
 /* Updated CameraScreen.kt
@@ -129,7 +135,7 @@ fun CameraScreen() {
 
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = overlayAlpha.value)))
 
-        Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 40.dp)) {
+        Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 15.dp, top = 40.dp)) {
             IconButtonBox(
                 icon = if (isUiVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                 onClick = {
@@ -142,7 +148,8 @@ fun CameraScreen() {
 
         if (isUiVisible && !isFrozen) {
             Column(
-                modifier = Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 90.dp),
+                modifier = Modifier.align(Alignment.TopEnd)
+                    .padding(end = 12.dp, top = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 IconButtonBox(icon = Icons.Default.Cameraswitch, onClick = {
@@ -249,6 +256,11 @@ fun CameraScreen() {
                         camera?.cameraControl?.enableTorch(isFlashOn)
                     }
                 },
+                onSettingButtonClick = {
+                        val intent = Intent(context, SettingActivity::class.java)
+                        context.startActivity(intent)
+
+                },
                 onZoomSliderToggle = {
                     if (isFrozen) {
                         Toast.makeText(context, "Zoom disabled in freeze mode", Toast.LENGTH_SHORT).show()
@@ -288,6 +300,7 @@ fun BottomControls(
     onFreezeToggle: () -> Unit,
     onCapture: () -> Unit,
     onFlashToggle: () -> Unit,
+    onSettingButtonClick: () -> Unit,
     onZoomSliderToggle: () -> Unit
 ) {
     Row(
@@ -295,11 +308,16 @@ fun BottomControls(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CircleIconButton(icon = Icons.Default.ZoomIn, contentDesc = "Zoom", onClick = onZoomSliderToggle)
+
         CircleIconButton(
-            icon = if (isFrozen) Icons.Default.Cancel else Icons.Default.AcUnit,
+            icon = if (isFrozen) R.drawable.zoomed else R.drawable.zoomin,
+            contentDesc = "Zoom",
+            onClick = onZoomSliderToggle
+        )
+
+        CircleIconButton(
+            icon = if (isFrozen) R.drawable.unfreez else R.drawable.freez,
             contentDesc = "Freeze",
-            tint = if (isFrozen) Color.Red else Color.White,
             onClick = onFreezeToggle
         )
         Surface(
@@ -318,28 +336,39 @@ fun BottomControls(
                 )
             }
         }
-        CircleIconButton(icon = Icons.Default.AutoAwesome, contentDesc = "AI")
         CircleIconButton(
-            icon = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+            icon = R.drawable.settings,
+            contentDesc = "Settings",
+            onClick = onSettingButtonClick
+        )
+
+        CircleIconButton(
+            icon = if (isFlashOn) R.drawable.flashon else R.drawable.flashlight,
             contentDesc = "Flash",
-            tint = Color.Yellow,
             onClick = onFlashToggle
         )
     }
 }
 
+
+
+
+
 @Composable
-fun CircleIconButton(icon: ImageVector, contentDesc: String, tint: Color = Color.White, onClick: () -> Unit = {}) {
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = Color.Gray.copy(alpha = 0.3f),
-        modifier = Modifier.size(48.dp)
-    ) {
-        IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = contentDesc, tint = tint)
-        }
+fun CircleIconButton(
+    icon: Int, // drawable resource id
+    contentDesc: String,
+    onClick: () -> Unit
+) {
+    IconButton(onClick = onClick) {
+        Image(
+            painter = painterResource(id = icon),
+            contentDescription = contentDesc,
+            modifier = Modifier.size(42.dp),
+         )
     }
 }
+
 
 @Composable
 fun BrightnessSlider(brightness: Float, onChange: (Float) -> Unit) {
